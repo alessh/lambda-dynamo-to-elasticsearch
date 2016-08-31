@@ -6,12 +6,12 @@ var elasticsearch = require('elasticsearch');
 var http_aws_es = require('http-aws-es');
 var when = require('when');
 var moment = require('moment');
-var table = 'stock';
+var table = 'altamira';
 var region = 'us-east-1';
-var es_domain = 'stockflare-staging';
-var es_endpoint = 'https://search-stockflare-staging-ubxnko4nzxhg557m2fqv7abjae.us-east-1.es.amazonaws.com';
+var es_domain = 'altamira';
+var es_endpoint = 'https://search-altamira-vsxf6dgsuddwa4wcebb45u5wge.us-east-1.es.amazonaws.com';
 
-exports.handler = function(event, context) {
+exports.handler = function(event, context, callback) {
 
 
   //  Log out the entire invocation
@@ -78,7 +78,19 @@ exports.handler = function(event, context) {
     var records = _.map(event.Records, function(record, index, all_records){
       return when.promise(function(resolve, reject, notify){
         if (record.eventName == 'REMOVE') {
-          resolve(record);
+            recordExists(result.es, table, record).then(function(exists){
+            // Now delete the record.
+            if (exists) {
+              return delRecord(result.es, table, record);
+            } else {
+              resolve(false);
+            }
+          }).then(function(record){
+            resolve(record);
+          }, function(reason){
+            console.log(reason);
+            reject(reason);
+          });
         } else {
           // First get the record
           recordExists(result.es, table, record).then(function(exists){
@@ -99,9 +111,13 @@ exports.handler = function(event, context) {
   }).done(function(records){
     // Succeed the context if all records have been created / updated
     console.log("Processed all records");
-    context.succeed("Successfully processed " + records.length + " records.");
+    //context.succeed() is deprecated with Node.js 4.3 runtime
+    //context.succeed("Successfully processed " + records.length + " records.");
+    callback(null, "Successfully processed " + records.length + " records.");
   }, function(reason){
-    context.fail("Failed to process records " + reason);
+    //context.fail() is deprecated with Node.js 4.3 runtime
+    //context.fail("Failed to process records " + reason);
+    callback("Failed to process records " + reason);
   });
 
 
@@ -124,15 +140,18 @@ var createIndex = function(es, table, callback) {
 var recordExists = function(es, table, record) {
   return when.promise(function(resolve, reject, notify){
 
-    es.get({
+    var params = {
       index: table,
-      id: record.dynamodb.NewImage.sic.S,
-      type: '_all'
-    }, function(err, response, status){
+      id: _.isUndefined(record.dynamodb.NewImage) ? record.dynamodb.OldImage.id.S : record.dynamodb.NewImage.id.S,
+      type: _.isUndefined(record.dynamodb.NewImage) ? record.dynamodb.OldImage.type.S : record.dynamodb.NewImage.type.S
+    }
+
+    es.get(params, function(err, response, status){
       if (status == 200) {
         console.log('Document Exists');
         resolve(true);
       } else if (status == 404) {
+        console.log('Document not Exists');
         resolve(false);
       } else {
         reject(err);
@@ -142,44 +161,59 @@ var recordExists = function(es, table, record) {
 };
 
 var putRecord = function(es, table, record, exists) {
-  console.log('putRecord:', record.dynamodb.NewImage.sic.S);
+  console.log('putRecord:', record.dynamodb.NewImage.id.S);
   return when.promise(function(resolve, reject, notify){
-    two_days_ago = (moment().utc().subtract(2, 'days').valueOf()) / 1000;
-    if (_.isUndefined(record.dynamodb.NewImage.updated_at) || record.dynamodb.NewImage.updated_at.N >= two_days_ago) {
-      console.log('Either no updated date or date within two days');
-      console.log(two_days_ago);
-      if (!_.isUndefined(record.dynamodb.NewImage.updated_at)) {
-        console.log(record.dynamodb.NewImage.updated_at.N);
-      }
-      var params = {
-        index: table,
-        id: record.dynamodb.NewImage.sic.S,
-        body: esBody(record),
-        type: 'stock'
-      };
-      var handler = function(err, response, status) {
-        if (status == 200 || status == 201) {
-          console.log('Document written');
-          resolve(record);
-        } else {
-          console.log(err, response, status);
-          reject(err);
-        }
-      };
 
-      if (exists) {
-        params.body = {
-          doc: esBody(record)
-        };
-        es.update(params, handler);
+    var params = {
+      index: table,
+      id: record.dynamodb.NewImage.id.S,
+      body: esBody(record),
+      type: record.dynamodb.NewImage.type.S
+    };
+    var handler = function(err, response, status) {
+      if (status == 200 || status == 201) {
+        console.log('Document written');
+        resolve(record);
       } else {
-        params.body = esBody(record);
-        es.create(params, handler);
+        console.log(err, response, status);
+        reject(err);
       }
+    };
+
+    if (exists) {
+      params.body = {
+        doc: esBody(record)
+      };
+      es.update(params, handler);
     } else {
-      console.log('Not saving record because it is too old');
-      resolve(record);
+      params.body = esBody(record);
+      es.create(params, handler);
     }
+
+  });
+};
+
+var delRecord = function(es, table, record) {
+  console.log('delRecord:', record.dynamodb.OldImage.id.S);
+  return when.promise(function(resolve, reject, notify){
+
+    var params = {
+      index: table,
+      id: record.dynamodb.OldImage.id.S,
+      type: record.dynamodb.OldImage.type.S
+    };
+    var handler = function(err, response, status) {
+      if (status == 200 || status == 201) {
+        console.log('Document removed');
+        resolve(record);
+      } else {
+        console.log('delRecord:'+err, response, status);
+        reject(err);
+      }
+    };
+
+    es.delete(params, handler);
+
   });
 };
 

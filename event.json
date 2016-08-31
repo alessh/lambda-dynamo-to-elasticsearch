@@ -1,0 +1,90 @@
+{
+  "Records": [
+    {
+      "eventID": "1",
+      "eventVersion": "1.0",
+      "dynamodb": {
+        "Keys": {
+          "id": {
+            "S": "5a2452e0-6bc8-11e6-20fe-b360a4e453f9"
+          }
+        },
+        "NewImage": {
+          "type": {
+            "S": "vertex:rh.funcionario"
+          },
+          "id": {
+            "S": "5a2452e0-6bc8-11e6-20fe-b360a4e453f9"
+          }
+        },
+        "StreamViewType": "NEW_AND_OLD_IMAGES",
+        "SequenceNumber": "111",
+        "SizeBytes": 26
+      },
+      "awsRegion": "us-east-1",
+      "eventName": "INSERT",
+      "eventSourceARN": "arn:aws:dynamodb:us-east-1:account-id:table/graphdb/stream/2015-06-27T00:48:05.899",
+      "eventSource": "aws:dynamodb"
+    },
+    {
+      "eventID": "2",
+      "eventVersion": "1.0",
+      "dynamodb": {
+        "OldImage": {
+          "type": {
+            "S": "vertex:rh.funcionario"
+          },
+          "id": {
+            "S": "5a2452e0-6bc8-11e6-20fe-b360a4e453f9"
+          }
+        },
+        "SequenceNumber": "222",
+        "Keys": {
+          "id": {
+            "S": "5a2452e0-6bc8-11e6-20fe-b360a4e453f9"
+          }
+        },
+        "SizeBytes": 59,
+        "NewImage": {
+          "type": {
+            "S": "vertex:rh.funcionario"
+          },
+          "id": {
+            "S": "5a2452e0-6bc8-11e6-20fe-b360a4e453f9"
+          }
+        },
+        "StreamViewType": "NEW_AND_OLD_IMAGES"
+      },
+      "awsRegion": "us-east-1",
+      "eventName": "MODIFY",
+      "eventSourceARN": "arn:aws:dynamodb:us-east-1:account-id:table/graphdb/stream/2015-06-27T00:48:05.899",
+      "eventSource": "aws:dynamodb"
+    },
+    {
+      "eventID": "3",
+      "eventVersion": "1.0",
+      "dynamodb": {
+        "Keys": {
+          "id": {
+            "S": "a296e810-6fa3-11e6-9728-430e064b9dc9"
+          }
+        },
+        "SizeBytes": 38,
+        "SequenceNumber": "333",
+        "OldImage": {
+          "type": {
+            "S": "vertex:rh.funcionario"
+          },
+          "id": {
+            "S": "a296e810-6fa3-11e6-9728-430e064b9dc9"
+          }
+        },
+        "StreamViewType": "NEW_AND_OLD_IMAGES"
+      },
+      "awsRegion": "us-east-1",
+      "eventName": "REMOVE",
+      "eventSourceARN": "arn:aws:dynamodb:us-east-1:account-id:table/graphdb/stream/2015-06-27T00:48:05.899",
+      "eventSource": "aws:dynamodb"
+    }
+  ]
+}
